@@ -1,10 +1,10 @@
-const express = require("express");                       // web framework
-const multer = require("multer");                         // middleware for handling file uploads
-const dotenv = require("dotenv");                         // loads environment variables from .env
-const fs = require("fs");                                 // Node.js built-in module for file system handling
-const pdfParse = require("pdf-parse");                    // to extract text from PDF files
-const axios = require("axios");                           // to make HTTP requests
-const path = require("path");                             // to work with file paths
+const express = require("express");
+const multer = require("multer");
+const dotenv = require("dotenv");
+const fs = require("fs");
+const pdfParse = require("pdf-parse");
+const axios = require("axios");
+const path = require("path");
 
 dotenv.config();
 
@@ -15,13 +15,13 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Ensure 'uploads' directory exists (prevents EEXIST error)
+// ✅ Add this to prevent mkdir crash (EEXIST)
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
 
-// Multer setup to store files in 'uploads' folder
+// ✅ Only after the folder is checked, initialize multer
 const upload = multer({ dest: "uploads/" });
 
 app.post("/analyze", upload.single("resume"), async (req, res) => {
