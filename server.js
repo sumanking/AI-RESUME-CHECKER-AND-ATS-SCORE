@@ -1,7 +1,7 @@
 const express = require("express");                       // web framework
 const multer = require("multer");                         // middleware for handling file uploads
-const dotenv = require("dotenv");                         // load environment variables from .env
-const fs = require("fs");                                 // Node.js module to handle file system
+const dotenv = require("dotenv");                         // loads environment variables from .env
+const fs = require("fs");                                 // Node.js built-in module for file system handling
 const pdfParse = require("pdf-parse");                    // to extract text from PDF files
 const axios = require("axios");                           // to make HTTP requests
 const path = require("path");                             // to work with file paths
@@ -15,27 +15,28 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Ensure the uploads folder exists before Multer uses it
+// ✅ Ensure 'uploads' directory exists (prevents EEXIST error)
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+    fs.mkdirSync(uploadDir);
 }
 
+// Multer setup to store files in 'uploads' folder
 const upload = multer({ dest: "uploads/" });
 
 app.post("/analyze", upload.single("resume"), async (req, res) => {
-  if (!req.file) return res.status(400).send("No file uploaded");
+    if (!req.file) return res.status(400).send("No file uploaded");
 
-  try {
-    const dataBuffer = fs.readFileSync(req.file.path);                  
-    const pdfData = await pdfParse(dataBuffer);                         
-    const resumeText = pdfData.text;
-    const jobDescription = req.body.jobDescription || "";
+    try {
+        const dataBuffer = fs.readFileSync(req.file.path);
+        const pdfData = await pdfParse(dataBuffer);
+        const resumeText = pdfData.text;
+        const jobDescription = req.body.jobDescription || "";
 
-    let prompt;
+        let prompt;
 
-    if (jobDescription.trim() === "") {
-      prompt = `
+        if (jobDescription.trim() === "") {
+            prompt = `
 You are a professional resume reviewer.
 
 Analyze the resume below and return feedback in HTML using the following structure:
@@ -51,8 +52,8 @@ Use <h3>, <ul>, <li>, <p> — clean HTML only.
 Resume:
 ${resumeText}
 `;
-    } else {
-      prompt = `
+        } else {
+            prompt = `
 You are an expert resume reviewer and ATS (Applicant Tracking System).
 
 TASK:
@@ -84,40 +85,37 @@ ${resumeText}
 Job Description:
 ${jobDescription}
 `;
-    }
-
-    const groqRes = await axios.post(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        model: "llama3-70b-8192",
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional resume and ATS evaluator."
-          },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.7
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          "Content-Type": "application/json"
         }
-      }
-    );
 
-    const feedback = groqRes.data.choices[0].message.content;
-    res.json({ feedback });
+        const groqRes = await axios.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            {
+                model: "llama3-70b-8192",
+                messages: [
+                    { role: "system", content: "You are a professional resume and ATS evaluator." },
+                    { role: "user", content: prompt }
+                ],
+                temperature: 0.7
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
 
-  } catch (err) {
-    console.error("❌ Error:", err.message);
-    res.status(500).send("Something went wrong during analysis.");
-  } finally {
-    fs.unlinkSync(req.file.path);
-  }
+        const feedback = groqRes.data.choices[0].message.content;
+        res.json({ feedback });
+
+    } catch (err) {
+        console.error("❌ Error:", err.message);
+        res.status(500).send("Something went wrong during analysis.");
+    } finally {
+        fs.unlinkSync(req.file.path);
+    }
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+    console.log(`✅ Server running on http://localhost:${PORT}`);
 });
