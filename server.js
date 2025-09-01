@@ -82,23 +82,24 @@ Job Description:
 ${jobDescription}`;
         }
 
-        const groqRes = await axios.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            {
+        // ✅ Fixed Groq API call with max_tokens
+        const groqRes = await axios({
+            method: "post",
+            url: "https://api.groq.com/openai/v1/chat/completions",
+            headers: {
+                Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            data: {
                 model: "llama3-70b-8192",
                 messages: [
                     { role: "system", content: "You are a professional resume and ATS evaluator." },
                     { role: "user", content: prompt }
                 ],
-                temperature: 0.7
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-                    "Content-Type": "application/json"
-                }
+                temperature: 0.7,
+                max_tokens: 2048 // ✅ IMPORTANT: prevents 400 error from Groq
             }
-        );
+        });
 
         const feedback = groqRes.data.choices[0].message.content;
         res.json({ feedback });
@@ -107,7 +108,7 @@ ${jobDescription}`;
         console.error("❌ Error:", err.message);
         res.status(500).send("Something went wrong during analysis.");
     } finally {
-        fs.unlinkSync(req.file.path);
+        fs.unlinkSync(req.file.path); // Clean up temp file
     }
 });
 
