@@ -28,9 +28,7 @@ document.getElementById("resumeForm").addEventListener("submit", async function(
         if (!response.ok) throw new Error("Failed to analyze resume");
 
         const data = await response.json();
-        // Show real AI feedback in HTML
         analysisText.innerHTML = data.feedback;
-
     } catch (err) {
         console.error(err);
         analysisText.innerHTML = "❌ Error analyzing resume. Please try again.";
